@@ -35,10 +35,13 @@ public class NurseEntity {
     private String email;
 
     @Column(nullable = false)
-    private String profileImage1; // Path to first image
+    private String password; // ADDED: Password field
 
     @Column(nullable = false)
-    private String profileImage2; // Path to second image
+    private String profileImage1;
+
+    @Column(nullable = false)
+    private String profileImage2;
 
     @Column(nullable = false)
     private String educationalQualification;

@@ -1,7 +1,5 @@
 package com.Sumanta.caremate.entity;
 
-import com.Sumanta.caremate.enums.PatientCategory;
-import com.Sumanta.caremate.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,50 +7,34 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "patients")
+@Table(name = "availability_schedules")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PatientEntity {
+public class AvailabilityScheduleEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String fullName;
-
-    @Column(nullable = false, unique = true)
-    private String mobileNo;
-
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
-    private String password; // ADDED: Password field
-
-    @Column(nullable = false)
-    private String hospitalReportImage;
-
-    @Column(nullable = false)
-    private Integer age;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nurse_id", nullable = false)
+    private NurseEntity nurse;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PatientCategory category;
+    private DayOfWeek dayOfWeek;
 
     @Column(nullable = false)
-    private String familyMobileNo;
+    private LocalTime startTime;
 
     @Column(nullable = false)
-    private String familyEmail;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role = UserRole.PATIENT;
+    private LocalTime endTime;
 
     @Column(nullable = false)
     private Boolean isActive = true;

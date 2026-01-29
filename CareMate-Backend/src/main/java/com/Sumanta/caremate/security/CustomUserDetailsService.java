@@ -38,23 +38,23 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .build();
         }
 
-        // Check Nurse
+        // Check Nurse - UPDATED: Now uses actual password
         Optional<NurseEntity> nurse = nurseRepository.findByEmail(email);
         if (nurse.isPresent()) {
             return User.builder()
                     .username(nurse.get().getEmail())
-                    .password("") // No password for nurse login (uses email/mobile/name)
+                    .password(nurse.get().getPassword()) // UPDATED: Use encrypted password
                     .authorities(Collections.singletonList(
                             new SimpleGrantedAuthority("ROLE_" + nurse.get().getRole().name())))
                     .build();
         }
 
-        // Check Patient
+        // Check Patient - UPDATED: Now uses actual password
         Optional<PatientEntity> patient = patientRepository.findByEmail(email);
         if (patient.isPresent()) {
             return User.builder()
                     .username(patient.get().getEmail())
-                    .password("") // No password for patient login (uses email/mobile/name)
+                    .password(patient.get().getPassword()) // UPDATED: Use encrypted password
                     .authorities(Collections.singletonList(
                             new SimpleGrantedAuthority("ROLE_" + patient.get().getRole().name())))
                     .build();

@@ -9,6 +9,7 @@ import com.Sumanta.caremate.repository.PatientRepository;
 import com.Sumanta.caremate.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class PatientService {
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final JWTUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public AuthResponse register(PatientRegistrationRequest request) {
@@ -41,6 +43,7 @@ public class PatientService {
         patient.setFullName(request.getFullName());
         patient.setMobileNo(request.getMobileNo());
         patient.setEmail(request.getEmail());
+        patient.setPassword(passwordEncoder.encode(request.getPassword())); // UPDATED: Encrypt password
         patient.setHospitalReportImage(reportImagePath);
         patient.setAge(request.getAge());
         patient.setCategory(request.getCategory());
@@ -77,16 +80,17 @@ public class PatientService {
     }
 
     public AuthResponse login(PatientLoginRequest request) {
-        PatientEntity patient = patientRepository
-                .findByFullNameAndMobileNoAndEmail(
-                        request.getFullName(),
-                        request.getMobileNo(),
-                        request.getEmail()
-                )
-                .orElseThrow(() -> new RuntimeException("Invalid credentials. Please check your details."));
+        // UPDATED: Find by email only
+        PatientEntity patient = patientRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
         if (!patient.getIsActive()) {
             throw new RuntimeException("Your account has been deactivated. Please contact admin.");
+        }
+
+        // UPDATED: Verify password
+        if (!passwordEncoder.matches(request.getPassword(), patient.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
         }
 
         String token = jwtUtil.generateToken(patient.getEmail());
