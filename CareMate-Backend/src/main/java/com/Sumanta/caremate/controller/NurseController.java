@@ -352,6 +352,60 @@ public class NurseController {
         }
     }
 
+    @GetMapping("/stats/bookings")
+    @PreAuthorize("hasRole('NURSE')")
+    @Operation(summary = "Get booking statistics")
+    public ResponseEntity<ApiResponse<BookingStatsDTO>> getBookingStats(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            BookingStatsDTO stats = nurseService.getBookingStats(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Booking statistics retrieved successfully", stats));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    // ==================== EARNINGS & PAYMENTS ====================
+
+    @GetMapping("/earnings")
+    @PreAuthorize("hasRole('NURSE')")
+    @Operation(summary = "Get total earnings")
+    public ResponseEntity<ApiResponse<EarningsDTO>> getTotalEarnings(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            EarningsDTO earnings = nurseService.getTotalEarnings(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Earnings retrieved successfully", earnings));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/earnings/monthly")
+    @PreAuthorize("hasRole('NURSE')")
+    @Operation(summary = "Get monthly earnings")
+    public ResponseEntity<ApiResponse<List<MonthlyEarningsDTO>>> getMonthlyEarnings(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            List<MonthlyEarningsDTO> earnings = nurseService.getMonthlyEarnings(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Monthly earnings retrieved successfully", earnings));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/earnings/breakdown")
+    @PreAuthorize("hasRole('NURSE')")
+    @Operation(summary = "Get earnings breakdown")
+    public ResponseEntity<ApiResponse<EarningsBreakdownDTO>> getEarningsBreakdown(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            EarningsBreakdownDTO breakdown = nurseService.getEarningsBreakdown(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Earnings breakdown retrieved successfully", breakdown));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     // ==================== NOTIFICATIONS ====================
 
     @GetMapping("/notifications")

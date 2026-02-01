@@ -40,6 +40,13 @@ public interface BookingRepository extends JpaRepository<BookingEntity, Long> {
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM BookingEntity b WHERE b.nurse = :nurse AND b.status = 'COMPLETED' AND b.completedAt >= :startDate")
     BigDecimal calculateEarningsSince(@Param("nurse") NurseEntity nurse, @Param("startDate") LocalDateTime startDate);
 
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM BookingEntity b WHERE b.nurse = :nurse AND b.status = 'COMPLETED' AND b.completedAt BETWEEN :startDate AND :endDate")
+    BigDecimal calculateEarningsInRange(@Param("nurse") NurseEntity nurse, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    Long countByNurseAndStatusAndCompletedAtAfter(NurseEntity nurse, BookingStatus status, LocalDateTime completedAt);
+
+    Long countByNurseAndStatusAndCompletedAtBetween(NurseEntity nurse, BookingStatus status, LocalDateTime start, LocalDateTime end);
+
     // Check for overlapping bookings
     @Query("SELECT COUNT(b) > 0 FROM BookingEntity b WHERE b.nurse = :nurse AND b.status IN ('ACCEPTED', 'IN_PROGRESS') AND ((b.startDate <= :endDate AND b.endDate >= :startDate))")
     boolean hasOverlappingBookings(@Param("nurse") NurseEntity nurse, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

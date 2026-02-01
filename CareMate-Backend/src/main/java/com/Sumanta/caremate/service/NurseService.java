@@ -438,6 +438,127 @@ public class NurseService {
         return dashboard;
     }
 
+    // ==================== EARNINGS & PAYMENTS ====================
+
+    public EarningsDTO getTotalEarnings(String email) {
+        NurseEntity nurse = nurseRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Nurse not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime startOfWeek = now.minusDays(7);
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+
+        EarningsDTO earnings = new EarningsDTO();
+        earnings.setTotalEarnings(bookingRepository.calculateTotalEarnings(nurse));
+        earnings.setMonthlyEarnings(bookingRepository.calculateEarningsSince(nurse, startOfMonth));
+        earnings.setWeeklyEarnings(bookingRepository.calculateEarningsSince(nurse, startOfWeek));
+        earnings.setDailyEarnings(bookingRepository.calculateEarningsSince(nurse, startOfDay));
+
+        Long totalCompleted = bookingRepository.countByNurseAndStatus(nurse, BookingStatus.COMPLETED);
+        earnings.setTotalCompletedBookings(totalCompleted.intValue());
+
+        Long monthlyCompleted = bookingRepository.countByNurseAndStatusAndCompletedAtAfter(
+                nurse, BookingStatus.COMPLETED, startOfMonth);
+        earnings.setMonthlyCompletedBookings(monthlyCompleted.intValue());
+
+        if (totalCompleted > 0) {
+            BigDecimal avgValue = earnings.getTotalEarnings().divide(
+                    BigDecimal.valueOf(totalCompleted), 2, java.math.RoundingMode.HALF_UP);
+            earnings.setAverageBookingValue(avgValue);
+        } else {
+            earnings.setAverageBookingValue(BigDecimal.ZERO);
+        }
+
+        return earnings;
+    }
+
+    public List<MonthlyEarningsDTO> getMonthlyEarnings(String email) {
+        NurseEntity nurse = nurseRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Nurse not found"));
+
+        List<MonthlyEarningsDTO> monthlyEarnings = new java.util.ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
+
+        for (int i = 11; i >= 0; i--) {
+            LocalDate monthDate = currentDate.minusMonths(i);
+            LocalDateTime startOfMonth = monthDate.withDayOfMonth(1).atStartOfDay();
+            LocalDateTime endOfMonth = monthDate.withDayOfMonth(
+                    monthDate.lengthOfMonth()).atTime(23, 59, 59);
+
+            BigDecimal earnings = bookingRepository.calculateEarningsInRange(
+                    nurse, startOfMonth, endOfMonth);
+            Long bookingsCount = bookingRepository.countByNurseAndStatusAndCompletedAtBetween(
+                    nurse, BookingStatus.COMPLETED, startOfMonth, endOfMonth);
+
+            MonthlyEarningsDTO dto = new MonthlyEarningsDTO();
+            dto.setMonth(monthDate.getMonth().toString() + " " + monthDate.getYear());
+            dto.setYear(monthDate.getYear());
+            dto.setMonthNumber(monthDate.getMonthValue());
+            dto.setEarnings(earnings != null ? earnings : BigDecimal.ZERO);
+            dto.setBookingsCompleted(bookingsCount.intValue());
+
+            monthlyEarnings.add(dto);
+        }
+
+        return monthlyEarnings;
+    }
+
+    public EarningsBreakdownDTO getEarningsBreakdown(String email) {
+        NurseEntity nurse = nurseRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Nurse not found"));
+
+        List<MonthlyEarningsDTO> monthlyBreakdown = getMonthlyEarnings(email);
+
+        BigDecimal totalEarnings = bookingRepository.calculateTotalEarnings(nurse);
+
+        MonthlyEarningsDTO highest = monthlyBreakdown.stream()
+                .max((a, b) -> a.getEarnings().compareTo(b.getEarnings()))
+                .orElse(new MonthlyEarningsDTO());
+
+        EarningsBreakdownDTO breakdown = new EarningsBreakdownDTO();
+        breakdown.setTotalEarnings(totalEarnings);
+        breakdown.setMonthlyBreakdown(monthlyBreakdown);
+        breakdown.setHighestMonthEarnings(highest.getEarnings());
+        breakdown.setHighestEarningMonth(highest.getMonth());
+
+        return breakdown;
+    }
+
+    // ==================== BOOKING STATISTICS ====================
+
+    public BookingStatsDTO getBookingStats(String email) {
+        NurseEntity nurse = nurseRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Nurse not found"));
+
+        BookingStatsDTO stats = new BookingStatsDTO();
+        stats.setTotalBookings(bookingRepository.countByNurse(nurse));
+        stats.setPendingBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.PENDING));
+        stats.setAcceptedBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.ACCEPTED));
+        stats.setRejectedBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.REJECTED));
+        stats.setCompletedBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.COMPLETED));
+        stats.setCancelledBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.CANCELLED));
+        stats.setActiveBookings(bookingRepository.countByNurseAndStatus(nurse, BookingStatus.IN_PROGRESS));
+
+        // Calculate acceptance rate
+        Long totalRequests = stats.getAcceptedBookings() + stats.getRejectedBookings();
+        if (totalRequests > 0) {
+            stats.setAcceptanceRate((stats.getAcceptedBookings().doubleValue() / totalRequests) * 100);
+        } else {
+            stats.setAcceptanceRate(0.0);
+        }
+
+        // Calculate completion rate
+        Long totalAccepted = stats.getAcceptedBookings() + stats.getCompletedBookings();
+        if (totalAccepted > 0) {
+            stats.setCompletionRate((stats.getCompletedBookings().doubleValue() / totalAccepted) * 100);
+        } else {
+            stats.setCompletionRate(0.0);
+        }
+
+        return stats;
+    }
+
     // ==================== NOTIFICATIONS ====================
 
     public PageResponse<NotificationDTO> getNotifications(String email, Pageable pageable) {
